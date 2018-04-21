@@ -3,8 +3,8 @@
 void Neural_network::use_GPU(){
 
   block = batch_size;
-	block2 = max(layers_size[1],layers_size[0])+1;
-	grid = max(layers_size[1],layers_size[0])+1;
+  block2 = max(layers_size[1],layers_size[0])+1;
+  grid = max(layers_size[1],layers_size[0])+1;
 
   cudaMalloc((double**)&training_X_GPU, training_size*input*sizeof(double));
 	cudaMalloc((double**)&training_Y_GPU, training_size*sizeof(double));
