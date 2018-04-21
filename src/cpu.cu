@@ -210,20 +210,20 @@ void Neural_network::softmax(){
 void Neural_network::error_check(double* Y, double* m_error, double* m_loss){
   int y;
   double loss=0, error=0;
-	for(int j=0;j<batch_size;j++){
-		for(int i=0;i<output;i++){
+  for(int j=0;j<batch_size;j++){
+    for(int i=0;i<output;i++){
       d_l[layers_number-2][j*output+i]=1.;
-			y=(Y[j]-i)*(Y[j]-i);
-			delta[layers_number-2][j*output+i]=a_l[layers_number-1][j*output+i]-y;
-			loss-=y*log(a_l[layers_number-1][j*output+i]);
-		}
-		int wynik;
-		if(a_l[layers_number-1][j*output]>a_l[layers_number-1][j*output+1]) wynik=1;
-		else wynik=0;
-		if(wynik==Y[j]) error++;
-	}
-	(*m_loss)+=loss/batch_size;
-	(*m_error)+=error/batch_size;
+      y=(Y[j]-i)*(Y[j]-i);
+      delta[layers_number-2][j*output+i]=a_l[layers_number-1][j*output+i]-y;
+      loss-=y*log(a_l[layers_number-1][j*output+i]);
+    }
+    int wynik;
+    if(a_l[layers_number-1][j*output]>a_l[layers_number-1][j*output+1]) wynik=1;
+    else wynik=0;
+    if(wynik==Y[j]) error++;
+  }
+  (*m_loss)+=loss/batch_size;
+  (*m_error)+=error/batch_size;
 }
 
 void Neural_network::error_calculate(int n){
@@ -237,17 +237,17 @@ void Neural_network::error_calculate(int n){
 
 void Neural_network::gradient_calculate(int n){
   for(int i=0;i<layers_size[n]+1;i++){
-		for(int k=0;k<layers_size[n+1];k++){
-			double w_update=0;
-			for(int j=0;j<batch_size;j++){
+    for(int k=0;k<layers_size[n+1];k++){
+      double w_update=0;
+      for(int j=0;j<batch_size;j++){
         //double update=a_l1[j*l1_size+i]*delta[j*l2_size+k]*d_l2[j*l2_size+k];
         //if(isnan(update)==0) w_update+=update;
         w_update+=a_l[n][j*(layers_size[n]+1)+i]*delta[n][j*layers_size[n+1]+k]*d_l[n][j*layers_size[n+1]+k];
       }
-			w_update/=batch_size;
-			w_gradient[n][i*layers_size[n+1]+k]=w_update;
-		}
-	}
+      w_update/=batch_size;
+      w_gradient[n][i*layers_size[n+1]+k]=w_update;
+    }
+  }
 }
 
 void Neural_network::update(){
@@ -280,38 +280,38 @@ void Neural_network::normal_gradient_update(int n){
 
 void Neural_network::momentum_update(int n){
   for(int i=0;i<layers_size[n]+1;i++){
-		for(int k=0;k<layers_size[n+1];k++){
+    for(int k=0;k<layers_size[n+1];k++){
       double v=0;
       v=0.8*w_gradient_old[n][i*layers_size[n+1]+k]+learning_rate*w_gradient[n][i*layers_size[n+1]+k];
       if(v>1) v=1;
       if(v<-1) v=-1;
-			w[n][i*layers_size[n+1]+k]-=v;
+      w[n][i*layers_size[n+1]+k]-=v;
       w_gradient_old[n][i*layers_size[n+1]+k]=v;
-		}
-	}
+    }
+  }
 }
 
 
 void Neural_network::adagrad_update(int n){
   for(int i=0;i<layers_size[n]+1;i++){
-		for(int k=0;k<layers_size[n+1];k++){
+    for(int k=0;k<layers_size[n+1];k++){
       w_gradient_old[n][i*layers_size[n+1]+k]+=w_gradient[n][i*layers_size[n+1]+k]*w_gradient[n][i*layers_size[n+1]+k];
       double v=0;
       v=learning_rate*w_gradient[n][i*layers_size[n+1]+k]/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+pow(1,-8)));
       //if(v>1) v=1;
       //if(v<-1) v=-1;
-			w[n][i*layers_size[n+1]+k]-=v;
-		}
-	}
+      w[n][i*layers_size[n+1]+k]-=v;
+    }
+  }
 }
 
 void Neural_network::RMSprop_update(int n){
   for(int i=0;i<layers_size[n]+1;i++){
-		for(int k=0;k<layers_size[n+1];k++){
+    for(int k=0;k<layers_size[n+1];k++){
       w_gradient_old[n][i*layers_size[n+1]+k]=0.1*(w_gradient[n][i*layers_size[n+1]+k]*w_gradient[n][i*layers_size[n+1]+k])+0.9*w_gradient_old[n][i*layers_size[n+1]+k];
-			w[n][i*layers_size[n+1]+k]-=w_gradient[n][i*layers_size[n+1]+k]*learning_rate/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+pow(1,-8)));
-		}
-	}
+      w[n][i*layers_size[n+1]+k]-=w_gradient[n][i*layers_size[n+1]+k]*learning_rate/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+pow(1,-8)));
+    }
+  }
 }
 
 void Neural_network::adam_update(int n){
@@ -319,15 +319,15 @@ void Neural_network::adam_update(int n){
   double B2=0.999;
   double m;
   double v;
-	for(int i=0;i<layers_size[n]+1;i++){
-		for(int k=0;k<layers_size[n+1];k++){
+  for(int i=0;i<layers_size[n]+1;i++){
+    for(int k=0;k<layers_size[n+1];k++){
       w_gradient_old[n][i*layers_size[n+1]+k]=B1*w_gradient_old[n][i*layers_size[n+1]+k]+(1-B1)*w_gradient[n][i*layers_size[n+1]+k];
       w_gradient_old2[n][i*layers_size[n+1]+k]=B2*w_gradient_old2[n][i*layers_size[n+1]+k]+(1-B2)*w_gradient[n][i*layers_size[n+1]+k]*w_gradient[n][i*layers_size[n+1]+k];
       m=w_gradient_old[n][i*layers_size[n+1]+k]/(1-B1);
       v=w_gradient_old2[n][i*layers_size[n+1]+k]/(1-B2);
-			w[n][i*layers_size[n+1]+k]-=m*learning_rate/(sqrt(v+pow(1,-8)+0.));
-		}
-	}
+      w[n][i*layers_size[n+1]+k]-=m*learning_rate/(sqrt(v+pow(1,-8)+0.));
+    }
+  }
 }
 
 void Neural_network::wage_max_min(double maximum, double minimum){
@@ -342,26 +342,26 @@ void Neural_network::wage_max_min(double maximum, double minimum){
 }
 
 double sigmoid(double y){
-	return 1./(1.+exp(-y));
+  return 1./(1.+exp(-y));
 }
 double d_sigmoid(double y){
-	return y*(1.-y);
+  return y*(1.-y);
 }
 
 double relu(double y){
-	if (y>0) return y;
-	else return 0;
+  if (y>0) return y;
+  else return 0;
 }
 double d_relu(double y){
-	if (y>0) return 1;
-	else return 0;
+  if (y>0) return 1;
+  else return 0;
 }
 
 double lrelu(double y){
-	if (y>0) return y;//min(y,1.);
-	else return 0.01*y;
+  if (y>0) return y;//min(y,1.);
+  else return 0.01*y;
 }
 double d_lrelu(double y){
-	if (y>0) return 1;
-	else return 0.01;
+  if (y>0) return 1;
+  else return 0.01;
 }
