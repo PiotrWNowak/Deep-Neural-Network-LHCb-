@@ -20,7 +20,7 @@ Aby sieć neuronowa mogła rozwiązać problem należy przygotować dane do ucze
 
 ### Trening
 
-Zaimplementowane jest do wyboru 5 algorytmów optymalizacji metody gradientu prostego
+Zaimplementowane jest do wyboru 5 algorytmów optymalizacji metody gradientu prostego <br />
 1 - SGD (Stochastic gradient descent) <br />
 2 - Momentum <br />
 3 - AdaGrad <br />
