@@ -15,7 +15,7 @@ nvcc -std=c++11 main.cu cpu.cu gpu.cu -o program_name
 Aby sieć neuronowa mogła rozwiązać problem należy przygotować dane do uczenia. W folderze "dane" jest przykładowy zbiór danych po normalizacji i podzielonych na dwa pliki. Jeden zawierający przypadki prawdziwe, drugi fałszywe. 
 
 <p align="center">
-  <img src="https://github.com/PiotrWNowak/Deep-Neural-Network-LHCb-/tree/master/analysys/images/1.png">
+  <img src="https://github.com/PiotrWNowak/Deep-Neural-Network-LHCb-/raw/master/analysys/images/1.png">
 </p>
 
 ### Test
