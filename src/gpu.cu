@@ -3,8 +3,8 @@
 void Neural_network::use_GPU(){
 
   block = batch_size;
-	block2 = layers_size[1];
-	grid = layers_size[1];
+	block2 = max(layers_size[1],layers_size[0])+1;
+	grid = max(layers_size[1],layers_size[0])+1;
 
   cudaMalloc((double**)&training_X_GPU, training_size*input*sizeof(double));
 	cudaMalloc((double**)&training_Y_GPU, training_size*sizeof(double));
@@ -13,22 +13,26 @@ void Neural_network::use_GPU(){
 
   w_GPU = new double* [layers_number-1];
 	for( int i=0;i<layers_number-1;i++){
-		cudaMalloc((double**)&(w_GPU[i]), layers_size[i]*layers_size[i+1]*sizeof(double));
-		cudaMalloc((double**)&(w_gradient[i]), layers_size[i]*layers_size[i+1]*sizeof(double));
-		cudaMalloc((double**)&(w_gradient_old[i]), layers_size[i]*layers_size[i+1]*sizeof(double));
-		cudaMalloc((double**)&(w_gradient_old2[i]), layers_size[i]*layers_size[i+1]*sizeof(double));
-		cudaMemcpy(w_GPU[i], w[i], layers_size[i]*layers_size[i+1]*sizeof(double), cudaMemcpyHostToDevice);
-    set_wage_zero_GPU<<< grid, block >>>(w_gradient[i], layers_size[i], layers_size[i+1]);
-    set_wage_zero_GPU<<< grid, block >>>(w_gradient_old[i], layers_size[i], layers_size[i+1]);
-    set_wage_zero_GPU<<< grid, block >>>(w_gradient_old[i], layers_size[i], layers_size[i+1]);
+		cudaMalloc((double**)&(w_GPU[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+		cudaMalloc((double**)&(w_gradient[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+		cudaMalloc((double**)&(w_gradient_old[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+		cudaMalloc((double**)&(w_gradient_old2[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+		cudaMemcpy(w_GPU[i], w[i], (layers_size[i]+1)*layers_size[i+1]*sizeof(double), cudaMemcpyHostToDevice);
+    set_GPU<<< grid, block2 >>>(w_gradient[i], (layers_size[i]+1), layers_size[i+1], 0);
+    set_GPU<<< grid, block2 >>>(w_gradient_old[i], (layers_size[i]+1), layers_size[i+1], 0);
+    set_GPU<<< grid, block2 >>>(w_gradient_old2[i], (layers_size[i]+1), layers_size[i+1], 0);
   }
 
   for(int i=0; i<layers_number-1; i++){
     cudaMalloc((double**)&(l[i]), layers_size[i+1]*batch_size*sizeof(double));
     cudaMalloc((double**)&(d_l[i]), layers_size[i+1]*batch_size*sizeof(double));
     cudaMalloc((double**)&(delta[i]), layers_size[i+1]*batch_size*sizeof(double));
-    cudaMalloc((double**)&(a_l[i+1]), layers_size[i+1]*batch_size*sizeof(double));
   }
+  for(int i=1; i<layers_number-1; i++){
+    cudaMalloc((double**)&(a_l[i]), (layers_size[i]+1)*batch_size*sizeof(double));
+    set_GPU<<< grid, block >>>(a_l[i], layers_size[i]+1, batch_size, 1);
+  }
+  cudaMalloc((double**)&(a_l[layers_number-1]), output*batch_size*sizeof(double));
   cudaMalloc((double**)&error_GPU, batch_size*sizeof(double));
   cudaMalloc((double**)&loss_GPU, batch_size*sizeof(double));
   error_CPU=new double [batch_size];
@@ -36,6 +40,7 @@ void Neural_network::use_GPU(){
 }
 
 void Neural_network::train_with_GPU(int epoch_number){
+  GPU_bool=true;
   cudaMemcpy(training_X_GPU, training_X, training_size*input*sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(training_Y_GPU, training_Y, training_size*sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(test_X_GPU, test_X, test_size*input*sizeof(double), cudaMemcpyHostToDevice);
@@ -48,8 +53,8 @@ void Neural_network::train_with_GPU(int epoch_number){
         error_calculate_GPU<<< grid, block >>>(delta[i], delta[i-1], w_GPU[i], layers_size[i+1], layers_size[i], batch_size);
       }
       for( int i=0;i<layers_number-1;i++){
-        set_wage_zero_GPU<<< grid, block >>>(w_gradient[i], layers_size[i], layers_size[i+1]);
-        gradient_calculate_GPU<<< grid, block2 >>>(a_l[i], w_gradient[i], delta[i], d_l[i], layers_size[i], layers_size[i+1], batch_size);
+        set_GPU<<< grid, block2 >>>(w_gradient[i], layers_size[i]+1, layers_size[i+1], 0);
+        gradient_calculate_GPU<<< grid, block2 >>>(a_l[i], w_gradient[i], delta[i], d_l[i], layers_size[i]+1, layers_size[i+1], batch_size);
       }
       update_GPU();
     }
@@ -61,23 +66,23 @@ void Neural_network::train_with_GPU(int epoch_number){
     std::cout<<"  Validation loss "<<loss/test_size*batch_size<<" error = "<<1-(error/test_size*batch_size)<<std::endl;
   }
   for( int i=0;i<layers_number-1;i++){
-    cudaMemcpy(w[i], w_GPU[i], layers_size[i]*layers_size[i+1]*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(w[i], w_GPU[i], (layers_size[i]+1)*layers_size[i+1]*sizeof(double), cudaMemcpyDeviceToHost);
   }
 }
 
 void Neural_network::feed_forward_GPU(double* X, double* Y, double* error, double* loss){
   a_l[0] = X;
   for(int i=0; i<layers_number-2; i++){
-    matrix_multiplication_GPU<<< grid, block >>>(l[i], a_l[i], w_GPU[i], layers_size[i+1], layers_size[i], batch_size);
+    matrix_multiplication_GPU<<< grid, block >>>(l[i], a_l[i], w_GPU[i], layers_size[i+1], layers_size[i]+1, batch_size);
     matrix_activation_GPU<<< grid, block >>>(l[i], a_l[i+1], d_l[i], layers_size[i+1], batch_size);
   }
-  matrix_multiplication_GPU<<< grid, block >>>(l[layers_number-2], a_l[layers_number-2], w_GPU[layers_number-2], layers_size[layers_number-1], layers_size[layers_number-2], batch_size);
+  matrix_multiplication_GPU<<< grid, block >>>(l[layers_number-2], a_l[layers_number-2], w_GPU[layers_number-2], layers_size[layers_number-1], layers_size[layers_number-2]+1, batch_size);
   softmax_GPU<<< grid, block >>>( l[layers_number-2], a_l[layers_number-1], output, batch_size);
   error_check_GPU<<< grid, block >>>(Y, a_l[layers_number-1], delta[layers_number-2], d_l[layers_number-2], error_GPU, loss_GPU, output, batch_size);
   cudaMemcpy(error_CPU, error_GPU, batch_size*sizeof(double), cudaMemcpyDeviceToHost);
   cudaMemcpy(loss_CPU, loss_GPU, batch_size*sizeof(double), cudaMemcpyDeviceToHost);
-  for(int i=1;i<batch_size;i++) error_CPU[0]+=error_CPU[i];
   for(int i=1;i<batch_size;i++) loss_CPU[0]+=loss_CPU[i];
+  for(int i=1;i<batch_size;i++) error_CPU[0]+=error_CPU[i];
   (*error)+=error_CPU[0]/batch_size;
   (*loss)+=loss_CPU[0]/batch_size;
 }
@@ -86,23 +91,23 @@ void Neural_network::update_GPU(){
   switch (gradient){
     case 1:
       for(int i=0; i<layers_number-1; i++)
-        normal_gradient_update_GPU<<< grid, block >>>(w_GPU[i], w_gradient[i], layers_size[i], layers_size[i+1], learning_rate);
+        normal_gradient_update_GPU<<< grid, block2 >>>(w_GPU[i], w_gradient[i], layers_size[i]+1, layers_size[i+1], learning_rate);
       break;
     case 2:
       for(int i=0; i<layers_number-1; i++)
-        momentum_update_GPU<<< grid, block >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], layers_size[i], layers_size[i+1], learning_rate);
+        momentum_update_GPU<<< grid, block2 >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], layers_size[i]+1, layers_size[i+1], learning_rate);
       break;
     case 3:
       for(int i=0; i<layers_number-1; i++)
-        adagrad_update_GPU<<< grid, block >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], layers_size[i], layers_size[i+1], learning_rate);
+        adagrad_update_GPU<<< grid, block2 >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], layers_size[i]+1, layers_size[i+1], learning_rate);
       break;
     case 4:
       for(int i=0; i<layers_number-1; i++)
-        RMSprop_update_GPU<<< grid, block >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], layers_size[i], layers_size[i+1], learning_rate);
+        RMSprop_update_GPU<<< grid, block2 >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], layers_size[i]+1, layers_size[i+1], learning_rate);
       break;
     case 5:
       for(int i=0; i<layers_number-1; i++)
-        adam_update_GPU<<< grid, block >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], w_gradient_old2[i], layers_size[i], layers_size[i+1], learning_rate);
+        adam_update_GPU<<< grid, block2 >>>(w_GPU[i], w_gradient[i], w_gradient_old[i], w_gradient_old2[i], layers_size[i]+1, layers_size[i+1], learning_rate);
       break;
   }
 }
@@ -110,25 +115,25 @@ void Neural_network::update_GPU(){
 __global__ void matrix_multiplication_GPU(double *l2, double *l1, double *w, int l2_size, int l1_size, int batch_size){
 	unsigned int j = threadIdx.x;
 	unsigned int i = blockIdx.x;
-		if(i<l2_size){
-			l2[j*l2_size+i]=0;
-			for(int k=0;k<l1_size;k++) l2[j*l2_size+i]+=l1[j*l1_size+k]*w[k*l2_size+i];
-		}
-}
-__global__ void matrix_activation_GPU( double *l, double *a_l, double *d_l, int l_size, int batch_size){
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	for(int i=0; i<l_size*batch_size; i+=gridDim.x*blockDim.x){
-		if(i+index<l_size*batch_size){
-			if (l[i+index]>0){
-				a_l[i+index]=l[i+index];//min(y,1.);
-				d_l[i+index]=1;
-			}
-			else{
-				a_l[i+index]=0.01*l[i+index];
-				d_l[i+index]=0.01;
-			}
-		}
+	if(i<l2_size){
+		l2[j*l2_size+i]=0;
+		for(int k=0;k<l1_size;k++) l2[j*l2_size+i]+=l1[j*l1_size+k]*w[k*l2_size+i];
 	}
+}
+
+__global__ void matrix_activation_GPU( double *l, double *a_l, double *d_l, int l_size, int batch_size){
+  unsigned int j = threadIdx.x;
+  unsigned int i = blockIdx.x;
+  if(i<l_size){
+    if(l[j*l_size+i]>0){
+      a_l[j*(l_size+1)+i]=l[j*l_size+i];
+      d_l[j*l_size+i]=1;
+    }
+    else{
+      a_l[j*(l_size+1)+i]=0.01*l[j*l_size+i];
+      d_l[j*l_size+i]=0.01;
+    }
+  }
 }
 __global__ void softmax_GPU( double *l, double *a_l, int l_size, int batch_size){
 	unsigned int j = threadIdx.x + blockIdx.x*blockDim.x;
@@ -168,12 +173,12 @@ __global__ void error_calculate_GPU(double *l2, double *l1, double *w, int l2_si
 		for(int k=0;k<l2_size;k++) l1[j*l1_size+i]+=l2[j*l2_size+k]*w[i*l2_size+k];
 	}
 }
-__global__ void set_wage_zero_GPU(double *w, int l1_size, int l2_size){
+__global__ void set_GPU(double *w, int l1_size, int l2_size, double d){
 	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
 	int n=l1_size*l2_size;
 	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
 		if(i+index<n){
-			w[i+index]=0;
+			w[i+index]=d;
 		}
 	}
 }

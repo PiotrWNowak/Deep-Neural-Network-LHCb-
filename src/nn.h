@@ -41,6 +41,7 @@ class Neural_network{
     double learning_rate;
     double error;
     double loss;
+    bool GPU_bool;
     int* layers_size;
     double* data_X;
     double* data_Y;
@@ -80,6 +81,7 @@ class Neural_network{
     void set_hiperparameters(int, gradient_type, double, double);
     void use_CPU();
     void train(int);
+    void train_with_CPU(int);
     void feed_forward(double*, double*, double*, double*);
     void matrix_multiplication(int);
     void matrix_activation(int);
@@ -96,8 +98,8 @@ class Neural_network{
     void wage_max_min(double, double);
 
     void use_GPU();
-    void train_with_GPU(int epoch_number);
-    void feed_forward_GPU(double* X, double* Y, double* error, double* loss);
+    void train_with_GPU(int);
+    void feed_forward_GPU(double*, double*, double*, double*);
     void update_GPU();
 };
 
@@ -113,7 +115,7 @@ __global__ void matrix_activation_GPU( double *l, double *a_l, double *d_l, int 
 __global__ void softmax_GPU( double *l, double *a_l, int l_size, int batch_size);
 __global__ void error_check_GPU(double *Y, double *a_l, double *delta, double *d_l, double *error, double *loss, int output, int batch_size);
 __global__ void error_calculate_GPU(double *l2, double *l1, double *w, int l2_size, int l1_size, int batch_size);
-__global__ void set_wage_zero_GPU(double *w, int l1_size, int l2_size);
+__global__ void set_GPU(double *w, int l1_size, int l2_size, double d);
 __global__ void gradient_calculate_GPU(double *a_l1, double *w, double *delta, double *d_l2, int l1_size, int l2_size, int batch_size);
 __global__ void normal_gradient_update_GPU(double *w, double *w_g, int l1_size, int l2_size, double learning_rate);
 __global__ void momentum_update_GPU(double *w, double *w_g, double *w_g_old, int l1_size, int l2_size, double learning_rate);
