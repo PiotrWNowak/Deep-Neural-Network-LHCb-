@@ -59,8 +59,8 @@ class Neural_network{
     double** delta;
 
     dim3 block;
-  	dim3 block2;
-  	dim3 grid;
+    dim3 block2;
+    dim3 grid;
     double* training_X_GPU;
     double* training_Y_GPU;
     double* test_X_GPU;
