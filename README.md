@@ -43,7 +43,7 @@ Dodatkowo sprawdzono wpływ ustawienia progu (Threshold) na dokładność oraz p
   <img src="https://github.com/PiotrWNowak/Deep-Neural-Network-LHCb-/raw/master/analysys/images/4.png">
 </p>
 
-## Głębsza analiza oraz opis działania znajdują się w pliku Bachelor thesis.png w folderze analysys.
+### Głębsza analiza oraz opis działania znajdują się w pliku Bachelor thesis.pdf w folderze analysys.
 
 ## Authors
 
