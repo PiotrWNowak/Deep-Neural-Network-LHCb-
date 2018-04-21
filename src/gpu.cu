@@ -113,12 +113,12 @@ void Neural_network::update_GPU(){
 }
 
 __global__ void matrix_multiplication_GPU(double *l2, double *l1, double *w, int l2_size, int l1_size, int batch_size){
-	unsigned int j = threadIdx.x;
-	unsigned int i = blockIdx.x;
-	if(i<l2_size){
-		l2[j*l2_size+i]=0;
-		for(int k=0;k<l1_size;k++) l2[j*l2_size+i]+=l1[j*l1_size+k]*w[k*l2_size+i];
-	}
+  unsigned int j = threadIdx.x;
+  unsigned int i = blockIdx.x;
+  if(i<l2_size){
+    l2[j*l2_size+i]=0;
+    for(int k=0;k<l1_size;k++) l2[j*l2_size+i]+=l1[j*l1_size+k]*w[k*l2_size+i];
+  }
 }
 
 __global__ void matrix_activation_GPU( double *l, double *a_l, double *d_l, int l_size, int batch_size){
@@ -136,138 +136,138 @@ __global__ void matrix_activation_GPU( double *l, double *a_l, double *d_l, int 
   }
 }
 __global__ void softmax_GPU( double *l, double *a_l, int l_size, int batch_size){
-	unsigned int j = threadIdx.x + blockIdx.x*blockDim.x;
-	if(j<batch_size){
-		double sume=0;
-		for(int i=0;i<l_size;i++){
-			a_l[j*l_size+i]=exp(l[j*l_size+i]);
-			sume+=a_l[j*l_size+i];
-		}
-		for(int i=0;i<l_size;i++) a_l[j*l_size+i]/=sume;
-	}
+  unsigned int j = threadIdx.x + blockIdx.x*blockDim.x;
+  if(j<batch_size){
+    double sume=0;
+    for(int i=0;i<l_size;i++){
+      a_l[j*l_size+i]=exp(l[j*l_size+i]);
+      sume+=a_l[j*l_size+i];
+    }
+    for(int i=0;i<l_size;i++) a_l[j*l_size+i]/=sume;
+  }
 }
 __global__ void error_check_GPU(double *Y, double *a_l, double *delta, double *d_l, double *error, double *loss, int output, int batch_size){
-	unsigned int j = threadIdx.x + blockIdx.x*blockDim.x;
-	if(j<batch_size){
-		int y;
-		loss[j]=0;
-		error[j]=0;
-		for(int i=0;i<output;i++){
+  unsigned int j = threadIdx.x + blockIdx.x*blockDim.x;
+  if(j<batch_size){
+    int y;
+    loss[j]=0;
+    error[j]=0;
+    for(int i=0;i<output;i++){
       d_l[j*output+i]=1.;
-			y=(Y[j]-i)*(Y[j]-i);
-			delta[j*output+i]=a_l[j*output+i]-y;
-			loss[j]-=y*log(a_l[j*output+i]);
-		}
-		//int wynik;
-		if(a_l[j*output]>a_l[j*output+1]) error[j]+=1;
-		error[j]+=Y[j];
-		if(error[j]==1) error[j]=0;
-		else error[j]=1;
-	}
+      y=(Y[j]-i)*(Y[j]-i);
+      delta[j*output+i]=a_l[j*output+i]-y;
+      loss[j]-=y*log(a_l[j*output+i]);
+    }
+    //int wynik;
+    if(a_l[j*output]>a_l[j*output+1]) error[j]+=1;
+    error[j]+=Y[j];
+    if(error[j]==1) error[j]=0;
+    else error[j]=1;
+  }
 }
 __global__ void error_calculate_GPU(double *l2, double *l1, double *w, int l2_size, int l1_size, int batch_size){
-	unsigned int j = threadIdx.x;
-	unsigned int i = blockIdx.x;
-	if(i<l1_size){
-		l1[j*l1_size+i]=0;
-		for(int k=0;k<l2_size;k++) l1[j*l1_size+i]+=l2[j*l2_size+k]*w[i*l2_size+k];
-	}
+  unsigned int j = threadIdx.x;
+  unsigned int i = blockIdx.x;
+  if(i<l1_size){
+    l1[j*l1_size+i]=0;
+    for(int k=0;k<l2_size;k++) l1[j*l1_size+i]+=l2[j*l2_size+k]*w[i*l2_size+k];
+  }
 }
 __global__ void set_GPU(double *w, int l1_size, int l2_size, double d){
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	int n=l1_size*l2_size;
-	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
-		if(i+index<n){
-			w[i+index]=d;
-		}
-	}
+  unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
+  int n=l1_size*l2_size;
+  for(int i=0; i<n; i+=gridDim.x*blockDim.x){
+    if(i+index<n){
+      w[i+index]=d;
+    }
+  }
 }
 __global__ void gradient_calculate_GPU(double *a_l1, double *w, double *delta, double *d_l2, int l1_size, int l2_size, int batch_size){
-	unsigned int i = threadIdx.x;
-	unsigned int k = blockIdx.x;
-	if(i<l1_size){
-		if(k<l2_size){
-			w[i*l2_size+k]=0;
-			for(int j=0;j<batch_size;j++){
+  unsigned int i = threadIdx.x;
+  unsigned int k = blockIdx.x;
+  if(i<l1_size){
+    if(k<l2_size){
+      w[i*l2_size+k]=0;
+      for(int j=0;j<batch_size;j++){
         double update=a_l1[j*l1_size+i]*delta[j*l2_size+k]*d_l2[j*l2_size+k];
         if(isnan(update)==0) w[i*l2_size+k]+=update;
         //w[i*l2_size+k]+=a_l1[j*l1_size+i]*delta[j*l2_size+k]*d_l2[j*l2_size+k];
       }
-			w[i*l2_size+k]/=batch_size;
-		}
-	}
+      w[i*l2_size+k]/=batch_size;
+    }
+  }
 }
 __global__ void normal_gradient_update_GPU(double *w, double *w_g, int l1_size, int l2_size, double learning_rate){
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	int n=l1_size*l2_size;
-	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
-		if(i+index<n){
-			w[i+index]-=w_g[i+index]*learning_rate;
+  unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
+  int n=l1_size*l2_size;
+  for(int i=0; i<n; i+=gridDim.x*blockDim.x){
+    if(i+index<n){
+      w[i+index]-=w_g[i+index]*learning_rate;
       //if(w[i+index]>2) w[i+index]=2.;
       //if(w[i+index]<-2) w[i+index]=-2.;
-		}
-	}
+    }
+  }
 }
 __global__ void momentum_update_GPU(double *w, double *w_g, double *w_g_old, int l1_size, int l2_size, double learning_rate){
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	int n=l1_size*l2_size;
-	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
-		if(i+index<n){
+  unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
+  int n=l1_size*l2_size;
+  for(int i=0; i<n; i+=gridDim.x*blockDim.x){
+    if(i+index<n){
       double v=0;
       v=0.8*w_g_old[i+index]+learning_rate*w_g[i+index];
       //if(v>1) v=1;
       //if(v<-1) v=-1;
-			w[i+index]-=v;
+      w[i+index]-=v;
       //if(w[i+index]>2) w[i+index]=2.;
       //if(w[i+index]<-2) w[i+index]=-2.;
       w_g_old[i+index]=v;
-		}
-	}
+    }
+  }
 }
 __global__ void adagrad_update_GPU(double *w, double *w_g, double *w_g_old, int l1_size, int l2_size, double learning_rate){
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	int n=l1_size*l2_size;
-	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
-		if(i+index<n){
+  unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
+  int n=l1_size*l2_size;
+  for(int i=0; i<n; i+=gridDim.x*blockDim.x){
+    if(i+index<n){
       w_g_old[i+index]+=w_g[i+index]*w_g[i+index];
       double v=0;
       v=learning_rate*w_g[i+index]/(sqrt(w_g_old[i+index]+0.00000001));
       //if(v>1) v=1;
       //if(v<-1) v=-1;
-			w[i+index]-=v;
+      w[i+index]-=v;
       //if(w[i+index]>2) w[i+index]=2.;
       //if(w[i+index]<-2) w[i+index]=-2.;
-		}
-	}
+    }
+  }
 }
 __global__ void RMSprop_update_GPU(double *w, double *w_g, double *w_g_old, int l1_size, int l2_size, double learning_rate){
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	int n=l1_size*l2_size;
-	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
-		if(i+index<n){
+  unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
+  int n=l1_size*l2_size;
+  for(int i=0; i<n; i+=gridDim.x*blockDim.x){
+    if(i+index<n){
       w_g_old[i+index]=0.1*(w_g[i+index]*w_g[i+index])+0.9*w_g_old[i+index];
-			w[i+index]-=w_g[i+index]*learning_rate/(sqrt(w_g_old[i+index]+0.00000001));
+      w[i+index]-=w_g[i+index]*learning_rate/(sqrt(w_g_old[i+index]+0.00000001));
       //if(w[i+index]>2) w[i+index]=2.;
       //if(w[i+index]<-2) w[i+index]=-2.;
-		}
-	}
+    }
+  }
 }
 __global__ void adam_update_GPU(double *w, double *w_g, double *w_g_old, double *w_g_old2, int l1_size, int l2_size, double learning_rate){
   double B1=0.9;
   double B2=0.999;
   double m;
   double v;
-	unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
-	int n=l1_size*l2_size;
-	for(int i=0; i<n; i+=gridDim.x*blockDim.x){
-		if(i+index<n){
+  unsigned int index = threadIdx.x + blockIdx.x*blockDim.x;
+  int n=l1_size*l2_size;
+  for(int i=0; i<n; i+=gridDim.x*blockDim.x){
+    if(i+index<n){
       w_g_old[i+index]=B1*w_g_old[i+index]+(1-B1)*w_g[i+index];
       w_g_old2[i+index]=B2*w_g_old2[i+index]+(1-B2)*w_g[i+index]*w_g[i+index];
       m=w_g_old[i+index]/(1-B1);
       v=w_g_old2[i+index]/(1-B2);
-			w[i+index]-=m*learning_rate/(sqrt(v+0.00000001+0.));
+      w[i+index]-=m*learning_rate/(sqrt(v+0.00000001+0.));
       if(w[i+index]>2) w[i+index]=2.;
       if(w[i+index]<-2) w[i+index]=-2.;
-		}
-	}
+    }
+  }
 }
