@@ -12,12 +12,12 @@ void Neural_network::use_GPU(){
 	cudaMalloc((double**)&test_Y_GPU, test_size*sizeof(double));
 
   w_GPU = new double* [layers_number-1];
-	for( int i=0;i<layers_number-1;i++){
-		cudaMalloc((double**)&(w_GPU[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
-		cudaMalloc((double**)&(w_gradient[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
-		cudaMalloc((double**)&(w_gradient_old[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
-		cudaMalloc((double**)&(w_gradient_old2[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
-		cudaMemcpy(w_GPU[i], w[i], (layers_size[i]+1)*layers_size[i+1]*sizeof(double), cudaMemcpyHostToDevice);
+  for( int i=0;i<layers_number-1;i++){
+    cudaMalloc((double**)&(w_GPU[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+    cudaMalloc((double**)&(w_gradient[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+    cudaMalloc((double**)&(w_gradient_old[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+    cudaMalloc((double**)&(w_gradient_old2[i]), (layers_size[i]+1)*layers_size[i+1]*sizeof(double));
+    cudaMemcpy(w_GPU[i], w[i], (layers_size[i]+1)*layers_size[i+1]*sizeof(double), cudaMemcpyHostToDevice);
     set_GPU<<< grid, block2 >>>(w_gradient[i], (layers_size[i]+1), layers_size[i+1], 0);
     set_GPU<<< grid, block2 >>>(w_gradient_old[i], (layers_size[i]+1), layers_size[i+1], 0);
     set_GPU<<< grid, block2 >>>(w_gradient_old2[i], (layers_size[i]+1), layers_size[i+1], 0);
