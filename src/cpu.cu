@@ -215,7 +215,7 @@ void Neural_network::error_check(double* Y, double* m_error, double* m_loss){
       d_l[layers_number-2][j*output+i]=1.;
       y=(Y[j]-i)*(Y[j]-i);
       delta[layers_number-2][j*output+i]=a_l[layers_number-1][j*output+i]-y;
-      loss-=y*log(a_l[layers_number-1][j*output+i]);
+      loss-=y*log(a_l[layers_number-1][j*output+i]+0.00001);
     }
     int wynik;
     if(a_l[layers_number-1][j*output]>a_l[layers_number-1][j*output+1]) wynik=1;
@@ -297,7 +297,7 @@ void Neural_network::adagrad_update(int n){
     for(int k=0;k<layers_size[n+1];k++){
       w_gradient_old[n][i*layers_size[n+1]+k]+=w_gradient[n][i*layers_size[n+1]+k]*w_gradient[n][i*layers_size[n+1]+k];
       double v=0;
-      v=learning_rate*w_gradient[n][i*layers_size[n+1]+k]/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+pow(1,-8)));
+      v=learning_rate*w_gradient[n][i*layers_size[n+1]+k]/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+0.000001));
       //if(v>1) v=1;
       //if(v<-1) v=-1;
       w[n][i*layers_size[n+1]+k]-=v;
@@ -309,7 +309,7 @@ void Neural_network::RMSprop_update(int n){
   for(int i=0;i<layers_size[n]+1;i++){
     for(int k=0;k<layers_size[n+1];k++){
       w_gradient_old[n][i*layers_size[n+1]+k]=0.1*(w_gradient[n][i*layers_size[n+1]+k]*w_gradient[n][i*layers_size[n+1]+k])+0.9*w_gradient_old[n][i*layers_size[n+1]+k];
-      w[n][i*layers_size[n+1]+k]-=w_gradient[n][i*layers_size[n+1]+k]*learning_rate/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+pow(1,-8)));
+      w[n][i*layers_size[n+1]+k]-=w_gradient[n][i*layers_size[n+1]+k]*learning_rate/(sqrt(w_gradient_old[n][i*layers_size[n+1]+k]+0.000001));
     }
   }
 }
@@ -325,7 +325,7 @@ void Neural_network::adam_update(int n){
       w_gradient_old2[n][i*layers_size[n+1]+k]=B2*w_gradient_old2[n][i*layers_size[n+1]+k]+(1-B2)*w_gradient[n][i*layers_size[n+1]+k]*w_gradient[n][i*layers_size[n+1]+k];
       m=w_gradient_old[n][i*layers_size[n+1]+k]/(1-B1);
       v=w_gradient_old2[n][i*layers_size[n+1]+k]/(1-B2);
-      w[n][i*layers_size[n+1]+k]-=m*learning_rate/(sqrt(v+pow(1,-8)+0.));
+      w[n][i*layers_size[n+1]+k]-=m*learning_rate/(sqrt(v+0.000001));
     }
   }
 }
@@ -340,6 +340,35 @@ void Neural_network::wage_max_min(double maximum, double minimum){
     }
   }
 }
+
+void Neural_network::save_model(std::string s){
+  std::fstream plik( s, std::ios::out );
+  if( plik.good() ){
+    for(int k=0; k<layers_number-1; k++){
+      for(int i=0; i<layers_size[k]+1; i++){
+        for (int j=0; j<layers_size[k+1]; j++){
+          plik << std::setprecision(15) <<  w[k][i*layers_size[k+1]+j]<<"  ";
+        }
+      }
+    }
+  }
+  plik.close();
+}
+
+void Neural_network::read_model(std::string s){
+  std::fstream plik( s, std::ios::in );
+  if( plik.good() ){
+    for(int k=0; k<layers_number-1; k++){
+      for(int i=0; i<layers_size[k]+1; i++){
+        for (int j=0; j<layers_size[k+1]; j++){
+          plik >>  w[k][i*layers_size[k+1]+j] ;
+        }
+      }
+    }
+  }
+  plik.close();
+}
+
 
 double sigmoid(double y){
   return 1./(1.+exp(-y));

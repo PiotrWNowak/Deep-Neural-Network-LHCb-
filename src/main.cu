@@ -10,4 +10,5 @@ int main(){
   a.set_hiperparameters(10, adam, 0.0001, 0.1);
   a.use_GPU();
   a.train(10);
+  a.save_model("weights.txt");
 }

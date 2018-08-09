@@ -156,7 +156,7 @@ __global__ void error_check_GPU(double *Y, double *a_l, double *delta, double *d
       d_l[j*output+i]=1.;
       y=(Y[j]-i)*(Y[j]-i);
       delta[j*output+i]=a_l[j*output+i]-y;
-      loss[j]-=y*log(a_l[j*output+i]);
+      loss[j]-=y*log(a_l[j*output+i]+0.00001);
     }
     //int wynik;
     if(a_l[j*output]>a_l[j*output+1]) error[j]+=1;
@@ -231,7 +231,7 @@ __global__ void adagrad_update_GPU(double *w, double *w_g, double *w_g_old, int 
     if(i+index<n){
       w_g_old[i+index]+=w_g[i+index]*w_g[i+index];
       double v=0;
-      v=learning_rate*w_g[i+index]/(sqrt(w_g_old[i+index]+0.00000001));
+      v=learning_rate*w_g[i+index]/(sqrt(w_g_old[i+index]+0.000001));
       //if(v>1) v=1;
       //if(v<-1) v=-1;
       w[i+index]-=v;
@@ -246,9 +246,9 @@ __global__ void RMSprop_update_GPU(double *w, double *w_g, double *w_g_old, int 
   for(int i=0; i<n; i+=gridDim.x*blockDim.x){
     if(i+index<n){
       w_g_old[i+index]=0.1*(w_g[i+index]*w_g[i+index])+0.9*w_g_old[i+index];
-      w[i+index]-=w_g[i+index]*learning_rate/(sqrt(w_g_old[i+index]+0.00000001));
-      //if(w[i+index]>2) w[i+index]=2.;
-      //if(w[i+index]<-2) w[i+index]=-2.;
+      w[i+index]-=w_g[i+index]*learning_rate/(sqrt(w_g_old[i+index]+0.000001));
+      if(w[i+index]>2) w[i+index]=2.;
+      if(w[i+index]<-2) w[i+index]=-2.;
     }
   }
 }
@@ -265,9 +265,9 @@ __global__ void adam_update_GPU(double *w, double *w_g, double *w_g_old, double 
       w_g_old2[i+index]=B2*w_g_old2[i+index]+(1-B2)*w_g[i+index]*w_g[i+index];
       m=w_g_old[i+index]/(1-B1);
       v=w_g_old2[i+index]/(1-B2);
-      w[i+index]-=m*learning_rate/(sqrt(v+0.00000001+0.));
-      if(w[i+index]>2) w[i+index]=2.;
-      if(w[i+index]<-2) w[i+index]=-2.;
+      w[i+index]-=m*learning_rate/(sqrt(v+0.000001));
+      //if(w[i+index]>2) w[i+index]=2.;
+      //if(w[i+index]<-2) w[i+index]=-2.;
     }
   }
 }

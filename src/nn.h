@@ -96,6 +96,8 @@ class Neural_network{
     void RMSprop_update(int);
     void adam_update(int);
     void wage_max_min(double, double);
+    void save_model(std::string);
+    void read_model(std::string);
 
     void use_GPU();
     void train_with_GPU(int);
